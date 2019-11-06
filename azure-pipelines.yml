@@ -23,5 +23,6 @@ stages:
     - task: Docker@2
       inputs:
         containerRegistry: 'Docker'
+        repository: 'pocust'
         command: 'buildAndPush'
         Dockerfile: '**/Dockerfile'
