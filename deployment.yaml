@@ -1,0 +1,3 @@
+containers:
+- name: Docker
+  image: pocust.azurecr.io/pocust:20
