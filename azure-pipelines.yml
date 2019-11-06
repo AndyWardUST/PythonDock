@@ -26,3 +26,8 @@ stages:
         repository: 'pocust'
         command: 'buildAndPush'
         Dockerfile: '**/Dockerfile'
+    - task: KubernetesManifest@0
+      inputs:
+        action: 'deploy'
+        kubernetesServiceConnection: 'Kubernetes'
+        manifests: 'deployment.yaml'
