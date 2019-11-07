@@ -12,6 +12,10 @@ variables:
   tag: '$(Build.BuildId)'
   imageRepository: 'pocust'
   dockerFilePath: '**/Dockerfile'
+  vmImageName: 'ubuntu-latest'
+
+pool:
+  vmImage: $(vmImageName)
 
 stages:
 - stage: Import
@@ -32,8 +36,6 @@ stages:
   jobs:
     - job: Build
       displayName: Build
-      pool:
-        vmImage: $(vmImageName)
       steps:
         - task: ArtifactoryDocker@1
           inputs:
