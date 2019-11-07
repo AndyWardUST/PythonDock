@@ -41,7 +41,7 @@ stages:
 
 - stage: Build
   displayName: Build Stage
-  dependsOn: Check
+  dependsOn: Import
   jobs:
     - job: Build
       displayName: Build
