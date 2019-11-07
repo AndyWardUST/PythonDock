@@ -10,24 +10,98 @@ resources:
 
 variables:
   tag: '$(Build.BuildId)'
+  imageRepository: 'pocust'
+  dockerFilePath: '**/Dockerfile'
 
 stages:
+- stage: Import
+  displayName: Import Requirements
+  jobs:
+    - job: Import
+      displayName: jFrog Import
+      steps:
+        - task: ArtifactoryNpm@1
+          displayName: Install NPM from Artifactory
+          inputs:
+            command: 'install'
+            artifactoryService: 'jFrog'
+            sourceRepo: 'npm'
+            workingFolder: '$(System.DefaultWorkingDirectory)'
+            collectBuildInfo: true
+            threads: '1'
+            buildName: '$(Build.DefinitionName)'
+            buildNumber: '$(Build.BuildNumber)'
+            includeEnvVars: true
+
+        - task: ArtifactoryToolsInstaller@1
+          displayName: Install jFrog Client from Artifactory
+          inputs:
+            artifactoryService: 'jFrog'
+            cliInstallationRepo: 'jfrog-cli'
+
 - stage: Build
-  displayName: Build image
-  jobs:  
-  - job: Build
-    displayName: Build
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-    - task: Docker@2
-      inputs:
-        containerRegistry: 'Docker'
-        repository: 'pocust'
-        command: 'buildAndPush'
-        Dockerfile: '**/Dockerfile'
-    - task: KubernetesManifest@0
-      inputs:
-        action: 'deploy'
-        kubernetesServiceConnection: 'Kubernetes'
-        manifests: 'deployment.yaml'
+  displayName: Build Stage
+  dependsOn: Check
+  jobs:
+    - job: Build
+      displayName: Build
+      pool:
+        vmImage: $(vmImageName)
+      steps:
+        - task: ArtifactoryDocker@1
+          inputs:
+            command: 'pull'
+            artifactoryService: 'jFrog'
+            sourceRepo: 'docker'
+            imageName: 'ustpoc-docker.jfrog.io/python:alpine3.7'
+
+        - task: Docker@2
+          inputs:
+            repository: $(imageRepository)
+            command: 'build'
+            Dockerfile: '$(dockerfilePath)'
+            tags: '$(tag)'
+
+        - task: UniversalPackages@0
+          inputs:
+            command: 'download'
+            downloadDirectory: '$(System.DefaultWorkingDirectory)'
+            feedsToUse: 'internal'
+            vstsFeed: 'd09b6095-5d34-406d-8b60-54c555945e9a'
+            vstsFeedPackage: '819e5519-79bf-4056-8920-f8c9bd51212c'
+            vstsPackageVersion: '19.3.311'
+
+        - task: CmdLine@2
+          inputs:
+            script: |
+              sudo mv $(System.DefaultWorkingDirectory)/twistcli /usr/bin/twistcli
+              sudo chmod +x /usr/bin/twistcli
+
+        - task: twistcli-scan@1
+          inputs:
+            scanType: 'images'
+            twistlockService: 'twistlock_cli'
+            vulnerabilityThreshold: 'critical'
+            onlyFixed: false
+            gracePeriod: '0'
+            complianceThreshold: 'critical'
+            artifact: '$(imageRepository):$(tag)'
+
+        - task: ArtifactoryDocker@1
+          inputs:
+            command: 'push'
+            artifactoryService: 'jFrog'
+            targetRepo: 'docker-local'
+            imageName: '$(imageRepository):$(tag)'
+            collectBuildInfo: true
+            buildName: '$(Build.DefinitionName)'
+            buildNumber: '$(Build.BuildNumber)'
+            includeEnvVars: true
+
+
+        - task: ArtifactoryPublishBuildInfo@1
+          inputs:
+            artifactoryService: 'jFrog'
+            buildName: '$(Build.DefinitionName)'
+            buildNumber: '$(Build.BuildNumber)'
+
