@@ -30,9 +30,35 @@ stages:
             artifactoryService: 'jFrog'
             cliInstallationRepo: 'jfrog-cli'
 
+- stage: Check
+  displayName: Check Stage
+  jobs:
+    - job: Check
+      displayName: Code Check
+      steps:
+        - task: SonarCloudPrepare@1
+          inputs:
+            SonarCloud: 'SonarCloud'
+            organization: 'andywardust'
+            scannerMode: 'CLI'
+            configMode: 'file'
+
+        - task: SonarCloudAnalyze@1
+
+        - task: SonarCloudPublish@1
+          inputs:
+            pollingTimeoutSec: '180'
+
+        - script: |
+            curl -LJO https://github.com/whitesource/unified-agent-distribution/releases/latest/download/wss-unified-agent.jar
+            java -jar wss-unified-agent.jar
+            npm test
+            npm run-script build
+          displayName: 'npm test and build'
+
 - stage: Build
   displayName: Build Stage
-  dependsOn: Import
+  dependsOn: Check
   jobs:
     - job: Build
       displayName: Build
