@@ -42,7 +42,7 @@ stages:
             command: 'pull'
             artifactoryService: 'jFrog'
             sourceRepo: 'docker'
-            imageName: 'ustpoc-docker.jfrog.io/python:alpine3.7'
+            imageName: 'ustpoc-docker.jfrog.io/python:latest'
 
         - task: Docker@2
           inputs:
