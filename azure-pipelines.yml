@@ -54,3 +54,85 @@ stages:
             java -jar wss-unified-agent.jar
           displayName: 'whitesource check'
 
+
+- stage: CheckMarx
+  displayName: CheckMarx Stage
+  dependsOn: Check
+  jobs:
+    - job: Checkmarx
+      pool: Default
+      steps:
+        - script: |
+            curl http://ifconfig.co
+
+        - task: Security static source code analysis@88
+          inputs:
+            CheckmarxService: 'CheeckMarxSchroders'
+            projectName: 'PythonDock'
+            preset: 'Checkmarx Default'
+            fullTeamName: 'CxServer\ASA\UST-Global\UST-POC'
+            incScan: true
+
+- stage: Build
+  displayName: Build Stage
+  dependsOn: Check
+  jobs:
+    - job: Build
+      displayName: Build
+      steps:
+        - task: ArtifactoryDocker@1
+          inputs:
+            command: 'pull'
+            artifactoryService: 'jFrog'
+            sourceRepo: 'docker'
+            imageName: 'ustpoc-docker.jfrog.io/python:latest'
+
+        - task: Docker@2
+          inputs:
+            repository: $(imageRepository)
+            command: 'build'
+            Dockerfile: '$(dockerfilePath)'
+            tags: '$(tag)'
+
+        - task: UniversalPackages@0
+          inputs:
+            command: 'download'
+            downloadDirectory: '$(System.DefaultWorkingDirectory)'
+            feedsToUse: 'internal'
+            vstsFeed: 'd09b6095-5d34-406d-8b60-54c555945e9a'
+            vstsFeedPackage: '819e5519-79bf-4056-8920-f8c9bd51212c'
+            vstsPackageVersion: '19.3.311'
+
+        - task: CmdLine@2
+          inputs:
+            script: |
+              sudo mv $(System.DefaultWorkingDirectory)/twistcli /usr/bin/twistcli
+              sudo chmod +x /usr/bin/twistcli
+
+        - task: twistcli-scan@1
+          inputs:
+            scanType: 'images'
+            twistlockService: 'twistlock_cli'
+            vulnerabilityThreshold: 'critical'
+            onlyFixed: false
+            gracePeriod: '0'
+            complianceThreshold: 'critical'
+            artifact: '$(imageRepository):$(tag)'
+
+        - task: ArtifactoryDocker@1
+          inputs:
+            command: 'push'
+            artifactoryService: 'jFrog'
+            targetRepo: 'docker-local'
+            imageName: '$(imageRepository):$(tag)'
+            collectBuildInfo: true
+            buildName: '$(Build.DefinitionName)'
+            buildNumber: '$(Build.BuildNumber)'
+            includeEnvVars: true\
+
+        - task: ArtifactoryPublishBuildInfo@1
+          inputs:
+            artifactoryService: 'jFrog'
+            buildName: '$(Build.DefinitionName)'
+            buildNumber: '$(Build.BuildNumber)'
+
