@@ -1,0 +1,103 @@
+# Docker
+# Build a Docker image 
+# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
+
+trigger:
+- master
+
+resources:
+- repo: self
+
+variables:
+  tag: '$(Build.BuildId)'
+  imageRepository: 'ustpoc-docker-local.jfrog.io/pocust'
+  dockerFilePath: '**/Dockerfile'
+  vmImageName: 'ubuntu-latest'
+
+pool:
+  vmImage: $(vmImageName)
+
+stages:
+- stage: Import
+  displayName: Import Requirements
+  jobs:
+    - job: Import
+      displayName: jFrog Import
+      steps:
+        - task: ArtifactoryToolsInstaller@1
+          displayName: Install jFrog Client from Artifactory
+          inputs:
+            artifactoryService: 'jFrog'
+            cliInstallationRepo: 'jfrog-cli'
+
+- stage: Check
+  displayName: Check Stage
+  jobs:
+    - job: Check
+      displayName: Code Check
+      steps:
+        - task: SonarCloudPrepare@1
+          inputs:
+            SonarCloud: 'SonarCloud'
+            organization: 'andywardust'
+            scannerMode: 'CLI'
+            configMode: 'file'
+
+        - task: SonarCloudAnalyze@1
+
+        - task: SonarCloudPublish@1
+          inputs:
+            pollingTimeoutSec: '180'
+
+        - script: |
+            curl -LJO https://github.com/whitesource/unified-agent-distribution/releases/latest/download/wss-unified-agent.jar
+            java -jar wss-unified-agent.jar
+          displayName: 'whitesource check'
+
+- stage: Build
+  displayName: Build Stage
+  dependsOn: Check
+  jobs:
+    - job: Build
+      displayName: Build
+      steps:
+        - task: ArtifactoryDocker@1
+          inputs:
+            command: 'pull'
+            artifactoryService: 'jFrog'
+            sourceRepo: 'docker'
+            imageName: 'ustpoc-docker.jfrog.io/python:latest'
+
+        - task: Docker@2
+          inputs:
+            repository: $(imageRepository)
+            command: 'build'
+            Dockerfile: '$(dockerfilePath)'
+            tags: '$(tag)'
+
+        - task: UniversalPackages@0
+          inputs:
+            command: 'download'
+            downloadDirectory: '$(System.DefaultWorkingDirectory)'
+            feedsToUse: 'internal'
+            vstsFeed: 'd09b6095-5d34-406d-8b60-54c555945e9a'
+            vstsFeedPackage: '819e5519-79bf-4056-8920-f8c9bd51212c'
+            vstsPackageVersion: '19.3.311'
+
+        - task: ArtifactoryDocker@1
+          inputs:
+            command: 'push'
+            artifactoryService: 'jFrog'
+            targetRepo: 'docker-local'
+            imageName: '$(imageRepository):$(tag)'
+            collectBuildInfo: true
+            buildName: '$(Build.DefinitionName)'
+            buildNumber: '$(Build.BuildNumber)'
+            includeEnvVars: true\
+
+        - task: ArtifactoryPublishBuildInfo@1
+          inputs:
+            artifactoryService: 'jFrog'
+            buildName: '$(Build.DefinitionName)'
+            buildNumber: '$(Build.BuildNumber)'
+
