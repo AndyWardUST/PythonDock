@@ -54,25 +54,6 @@ stages:
             java -jar wss-unified-agent.jar
           displayName: 'whitesource check'
 
-
-- stage: CheckMarx
-  displayName: CheckMarx Stage
-  dependsOn: Check
-  jobs:
-    - job: Checkmarx
-      pool: Default
-      steps:
-        - script: |
-            curl http://ifconfig.co
-
-        - task: Security static source code analysis@88
-          inputs:
-            CheckmarxService: 'CheeckMarxSchroders'
-            projectName: 'PythonDock'
-            preset: 'Checkmarx Default'
-            fullTeamName: 'CxServer\ASA\UST-Global\UST-POC'
-            incScan: true
-
 - stage: Build
   displayName: Build Stage
   dependsOn: Check
@@ -108,16 +89,6 @@ stages:
             script: |
               sudo mv $(System.DefaultWorkingDirectory)/twistcli /usr/bin/twistcli
               sudo chmod +x /usr/bin/twistcli
-
-        - task: twistcli-scan@1
-          inputs:
-            scanType: 'images'
-            twistlockService: 'twistlock_cli'
-            vulnerabilityThreshold: 'critical'
-            onlyFixed: false
-            gracePeriod: '0'
-            complianceThreshold: 'critical'
-            artifact: '$(imageRepository):$(tag)'
 
         - task: ArtifactoryDocker@1
           inputs:
