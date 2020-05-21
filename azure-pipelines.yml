@@ -10,12 +10,11 @@ resources:
 
 variables:
   tag: '$(Build.BuildId)'
-  imageRepository: 'ustpoc-docker-local.jfrog.io/pocust'
+  imageRepository: 'pocust'
   dockerFilePath: '**/Dockerfile'
   vmImageName: 'ubuntu-latest'
 
-pool:
-  vmImage: $(vmImageName)
+pool: Default
 
 stages:
 - stage: Check
