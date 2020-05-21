@@ -17,6 +17,21 @@ variables:
 pool: Default
 
 stages:
+- stage: Build
+  displayName: Build Stage
+  dependsOn: Check
+  jobs:
+    - job: Build
+      displayName: Build
+      steps:
+        - task: Docker@2
+          inputs:
+            repository: $(imageRepository)
+            command: 'build'
+            Dockerfile: '$(dockerfilePath)'
+            tags: '$(tag)'
+
+
 - stage: Check
   displayName: Check Stage
   jobs:
@@ -36,18 +51,6 @@ stages:
           inputs:
             pollingTimeoutSec: '180'
 
-- stage: Build
-  displayName: Build Stage
-  dependsOn: Check
-  jobs:
-    - job: Build
-      displayName: Build
-      steps:
-        - task: Docker@2
-          inputs:
-            repository: $(imageRepository)
-            command: 'build'
-            Dockerfile: '$(dockerfilePath)'
-            tags: '$(tag)'
+
 
 
