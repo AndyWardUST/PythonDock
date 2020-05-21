@@ -18,18 +18,6 @@ pool:
   vmImage: $(vmImageName)
 
 stages:
-- stage: Import
-  displayName: Import Requirements
-  jobs:
-    - job: Import
-      displayName: jFrog Import
-      steps:
-        - task: ArtifactoryToolsInstaller@1
-          displayName: Install jFrog Client from Artifactory
-          inputs:
-            artifactoryService: 'jFrog'
-            cliInstallationRepo: 'jfrog-cli'
-
 - stage: Check
   displayName: Check Stage
   jobs:
@@ -61,13 +49,6 @@ stages:
     - job: Build
       displayName: Build
       steps:
-        - task: ArtifactoryDocker@1
-          inputs:
-            command: 'pull'
-            artifactoryService: 'jFrog'
-            sourceRepo: 'docker'
-            imageName: 'ustpoc-docker.jfrog.io/python:latest'
-
         - task: Docker@2
           inputs:
             repository: $(imageRepository)
@@ -75,35 +56,4 @@ stages:
             Dockerfile: '$(dockerfilePath)'
             tags: '$(tag)'
 
-        - task: UniversalPackages@0
-          inputs:
-            command: 'download'
-            downloadDirectory: '$(System.DefaultWorkingDirectory)'
-            feedsToUse: 'internal'
-            vstsFeed: 'd09b6095-5d34-406d-8b60-54c555945e9a'
-            vstsFeedPackage: '819e5519-79bf-4056-8920-f8c9bd51212c'
-            vstsPackageVersion: '19.3.311'
-
-        - task: CmdLine@2
-          inputs:
-            script: |
-              sudo mv $(System.DefaultWorkingDirectory)/twistcli /usr/bin/twistcli
-              sudo chmod +x /usr/bin/twistcli
-
-        - task: ArtifactoryDocker@1
-          inputs:
-            command: 'push'
-            artifactoryService: 'jFrog'
-            targetRepo: 'docker-local'
-            imageName: '$(imageRepository):$(tag)'
-            collectBuildInfo: true
-            buildName: '$(Build.DefinitionName)'
-            buildNumber: '$(Build.BuildNumber)'
-            includeEnvVars: true\
-
-        - task: ArtifactoryPublishBuildInfo@1
-          inputs:
-            artifactoryService: 'jFrog'
-            buildName: '$(Build.DefinitionName)'
-            buildNumber: '$(Build.BuildNumber)'
 
