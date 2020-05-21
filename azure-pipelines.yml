@@ -36,11 +36,6 @@ stages:
           inputs:
             pollingTimeoutSec: '180'
 
-        - script: |
-            curl -LJO https://github.com/whitesource/unified-agent-distribution/releases/latest/download/wss-unified-agent.jar
-            java -jar wss-unified-agent.jar
-          displayName: 'whitesource check'
-
 - stage: Build
   displayName: Build Stage
   dependsOn: Check
