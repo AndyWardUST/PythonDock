@@ -17,22 +17,9 @@ variables:
 pool: Default
 
 stages:
-- stage: Build
-  displayName: Build Stage
-  jobs:
-    - job: Build
-      displayName: Build
-      steps:
-        - task: Docker@2
-          inputs:
-            repository: $(imageRepository)
-            command: 'build'
-            Dockerfile: '$(dockerfilePath)'
-            tags: '$(tag)'
-
-
 - stage: Check
   displayName: Check Stage
+  pool: 'Python Pool'
   jobs:
     - job: Check
       displayName: Code Check
@@ -49,6 +36,23 @@ stages:
         - task: SonarCloudPublish@1
           inputs:
             pollingTimeoutSec: '180'
+
+
+- stage: Build
+  displayName: Build Stage
+  pool: 'Docker Pool'
+  jobs:
+    - job: Build
+      displayName: Build
+      steps:
+        - task: Docker@2
+          inputs:
+            repository: $(imageRepository)
+            command: 'build'
+            Dockerfile: '$(dockerfilePath)'
+            tags: '$(tag)'
+
+
 
 
 
