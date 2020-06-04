@@ -24,6 +24,11 @@ stages:
     - job: Check
       displayName: Code Check
       steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '3.7'
+            addToPath: true
+            architecture: 'x64'
         - task: SonarCloudPrepare@1
           inputs:
             SonarCloud: 'SonarCloud'
@@ -36,6 +41,11 @@ stages:
         - task: SonarCloudPublish@1
           inputs:
             pollingTimeoutSec: '180'
+
+        - task: Bash@3
+          inputs:
+            targetType: 'inline'
+            script: 'python -V'
 
 
 - stage: Build
