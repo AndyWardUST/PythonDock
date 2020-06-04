@@ -24,6 +24,9 @@ stages:
     - job: Check
       displayName: Code Check
       steps:
+        - task: UseNode@1
+          inputs:
+            version: '12.13.0'
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '3.7'
